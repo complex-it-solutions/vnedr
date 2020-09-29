@@ -2,7 +2,7 @@ function Export-PersonToItop {
 
     param (
         [Parameter(ValueFromPipeline)]
-        [string]$FromCSV = ".\Сотрудники компани.ком.csv",
+        [string]$FromCSV = ".\Сотрудники шаблон.csv",
         [string]$ToCSV = ".\Сотрудники $($OrganizationName).csv",
         [string]$OrganizationName = "<Название компании>",
         [string]$OrganizationLocation = "<Расположение компании>",
@@ -37,6 +37,4 @@ function Export-PersonToItop {
     }
 }
 
-Export-PersonToItop -FromCSV "D:\CloudFiles\Onedrive-user\OneDrive\Внедрение\Общее\Сотрудники компани.ком.csv" `
--ToCSV "D:\CloudFiles\Onedrive-user\OneDrive\Внедрение\Общее\Сотрудники Экопродукт.csv" `
--OrganizationName "Экопродукт" -OrganizationLocation "Экопродукт Москва"
+Export-PersonToItop -OrganizationName "Компания" -OrganizationLocation "Компания Город"
