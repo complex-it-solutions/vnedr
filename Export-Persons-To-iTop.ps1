@@ -1,14 +1,13 @@
-function Export-PersonToItop {
+function Export-PersonsToItop {
 
     param (
         [Parameter(ValueFromPipeline)]
         [string]$FromCSV = ".\Сотрудники шаблон.csv",
-        [string]$ToCSV = ".\Сотрудники $($OrganizationName).csv",
+        [string]$ToCSV = ".\Persons $($OrganizationName).csv",
         [string]$OrganizationName = "<Название компании>",
         [string]$OrganizationLocation = "<Расположение компании>",
         [string]$Status = "Активный",
-        [string]$ContactType = "Персона",
-        [string]$Notify = "Да"
+        [string]$Notify = "да"
     )
 
     process {
@@ -20,7 +19,6 @@ function Export-PersonToItop {
             $PersonsInfo += [PSCustomObject]@{
                 "Имя"                    = $Person.Имя
                 "Фамилия"                = $Person.Фамилия
-                "Полное название"        = "$($Person.Имя) $($Person.Фамилия)"
                 "Организация->Название"  = $OrganizationName
                 "Статус"                 = $Status
                 "Расположение->Название" = $OrganizationLocation
@@ -28,13 +26,11 @@ function Export-PersonToItop {
                 "Телефон"                = $Person.'Добавочный номер'
                 "Функция"                = $Person.Должность
                 "Уведомлять"             = $Notify
-                "Тип контакта"           = $ContactType
                 "Мобильный телефон"      = $Person.'Мобильный телефон'
             }
         }
-        $PersonsInfo | ConvertTo-Csv -NoTypeInformation -Delimiter "`t" | Out-File $ToCSV -Encoding unicode
-        Invoke-Item $ToCSV
+        $PersonsInfo | ConvertTo-Csv -NoTypeInformation -Delimiter "`t" | Out-File $ToCSV -Encoding default
     }
 }
 
-Export-PersonToItop -OrganizationName "Компания" -OrganizationLocation "Компания Город"
+Export-PersonsToItop -OrganizationName "Компания" -OrganizationLocation "Расположение"
