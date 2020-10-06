@@ -1,6 +1,6 @@
 . .\Write-Log.ps1
 
-#Requires -Version 2.0
+#Requires -Version 3.0
 function Export-KEToItop {
     <#
     .SYNOPSIS
@@ -36,7 +36,7 @@ function Export-KEToItop {
         
     .EXAMPLE
         PS C:\> 
-        $computers = (Get-ADComputer -SearchBase "OU=Moscow,OU=Workstations,DC=bil,DC=local" -Filter {Enabled -eq "True" -and Name -like "*NOTE*"}).Name
+        $computers = (Get-ADComputer -SearchBase "OU=Workstations,DC=bil,DC=local" -Filter {Enabled -eq "True" -and Name -like "*NOTE*"}).Name
         $computers | foreach {
             if (Test-Connection $_ -Count 1 -Quiet) {
                 Test-WSMan -ComputerName $_ | Out-Null
@@ -55,6 +55,7 @@ function Export-KEToItop {
         Версия 1.1:       Добавлен параметр UseWMI. Понижена минимальная версия Powershell
         Версия 1.2:       Добавлено автоматическое определение типа компьютера
         Версия 1.3:       Убран параметр UseWMI, переделано всё на CIM-классы
+        Версия 1.4:       Снова вернулся к powershell 3.0 (sic!), чтобы CIM заработал полноценно через современный WSMAN (вместо DCOM). Оставил обратную совместимость с powershell 2.0. https://mcpmag.com/articles/2013/05/07/remote-to-second-powershell.aspx
         
         TODO:
         Есть проблема с определением брендовых железок, если это ноут/моноблок/... Например вместо модели HP 8184 должна быть HP 260 G2 DM
@@ -85,16 +86,31 @@ function Export-KEToItop {
             }
         }
 
-        $CIMSession = New-CimSession -ComputerName $ComputerName -SessionOption $CIMOption
-        $MB = Get-CimInstance -ClassName CIM_Card -CimSession $CIMSession
-        $OS = Get-CimInstance -ClassName CIM_OperatingSystem -CimSession $CIMSession
-        $CPU = Get-CimInstance -ClassName CIM_Processor -CimSession $CIMSession
-        $Comp = Get-CimInstance -ClassName CIM_ComputerSystem -CimSession $CIMSession
+        try {
+            $CIMSession = New-CimSession -ComputerName $ComputerName -SessionOption $CIMOption -ErrorAction Stop
+            $MB = Get-CimInstance -ClassName CIM_Card -CimSession $CIMSession
+            $OS = Get-CimInstance -ClassName CIM_OperatingSystem -CimSession $CIMSession
+            $CPU = Get-CimInstance -ClassName CIM_Processor -CimSession $CIMSession
+            $Comp = Get-CimInstance -ClassName CIM_ComputerSystem -CimSession $CIMSession
 
-        $RAMInfo = ""
-        Get-CimInstance -ClassName CIM_PhysicalMemory -CimSession $CIMSession | ForEach-Object {
-            $RAMInfo += [string]($_.Capacity / 1Gb) + " Gb (" + $_.PartNumber + "); "
+            $RAMInfo = ""
+            Get-CimInstance -ClassName CIM_PhysicalMemory -CimSession $CIMSession | ForEach-Object {
+                $RAMInfo += [string]($_.Capacity / 1Gb) + " Gb (" + $_.PartNumber + "); "
+            }
+
         }
+        catch [Microsoft.Management.Infrastructure.CimException] {
+            $MB = Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_Card"
+            $OS = Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_OperatingSystem"
+            $CPU = Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_Processor"
+            $Comp = Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_ComputerSystem"
+
+            $RAMInfo = ""
+            Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_PhysicalMemory" | ForEach-Object {
+                $RAMInfo += [string]($_.Capacity / 1Gb) + " Gb (" + $_.PartNumber + "); "
+            }
+        }
+
         $RAMInfo = $RAMInfo -replace "..$"
 
         switch ($Comp.PCSystemType) {
@@ -129,7 +145,7 @@ function Export-KEToItop {
             "Семейство ОС->Полное название"                     = $OSFamily
             "Версия ОС->Полное название"                        = $OS.Caption -replace "Microsoft " -replace "Майкрософт " -replace "Профессиональная", "Pro" -replace " \(Registered Trademark\)" -replace " для рабочих станций"
         }
-    Get-CimSession | Remove-CimSession
+        Get-CimSession | Remove-CimSession
     }
 }
 
@@ -152,9 +168,15 @@ function Export-MotherboardToItop {
             }
         }
     
-        $CIMSession = New-CimSession -ComputerName $ComputerName -SessionOption $CIMOption
-        $MB = Get-CimInstance -ClassName CIM_Card -CimSession $CIMSession
-        $Comp = Get-CimInstance  -ClassName CIM_ComputerSystem -CimSession $CIMSession
+        try {
+            $CIMSession = New-CimSession -ComputerName $ComputerName -SessionOption $CIMOption -ErrorAction Stop
+            $MB = Get-CimInstance -ClassName CIM_Card -CimSession $CIMSession
+            $Comp = Get-CimInstance  -ClassName CIM_ComputerSystem -CimSession $CIMSession
+        }
+        catch [Microsoft.Management.Infrastructure.CimException] {
+            $MB = Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_Card"
+            $Comp = Get-CimInstance -ComputerName $ComputerName -Query "select * from CIM_ComputerSystem"
+        }
 
         switch ($Comp.PCSystemType) {
             1 {
