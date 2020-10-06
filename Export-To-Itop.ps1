@@ -26,9 +26,6 @@ function Export-KEToItop {
     .PARAMETER OrganizationLocation
         Расположение организации, символ-в-символ, как в айтопе. Например "Офис БИЛ Химки". По умолчанию, <Расположение компании>.
     
-    .PARAMETER UseWMI
-        Использовать WMI вместо CIM. Необходимо для работы с Powershell 2.0. По умолчанию, CIM
-    
     .EXAMPLE
         PS C:\> Export-KEToItop
         Собрать информацию на локальном компьютере
@@ -38,33 +35,29 @@ function Export-KEToItop {
         Собрать информацию на удалённом компьютере MANAGER01
         
     .EXAMPLE
-        PS C:\> Export-KEToItop -ComputerName MANAGER01 -UseWMI
-        Собрать информацию на удалённом компьютере MANAGER01 используя WMI.
-    
-    .EXAMPLE
         PS C:\> 
-        $computers = (Get-ADComputer -SearchBase "OU=Moscow,OU=Workstations,DC=mege,DC=ru" -Filter {Enabled -eq "True" -and Name -like "*NOTE*"}).Name
+        $computers = (Get-ADComputer -SearchBase "OU=Moscow,OU=Workstations,DC=bil,DC=local" -Filter {Enabled -eq "True" -and Name -like "*NOTE*"}).Name
         $computers | foreach {
             if (Test-Connection $_ -Count 1 -Quiet) {
                 Test-WSMan -ComputerName $_ | Out-Null
                 if ($?) {
-                    Export-KEToItop -ComputerName $_ -OrganizationName "Миг Электро" -OrganizationLocation "Офис Щербаковская"
+                    Export-KEToItop -ComputerName $_ -OrganizationName "БИЛ (БрэндИмпортЛоджистик)" -OrganizationLocation "Офис БИЛ Химки"
                 }
             }
         } | ConvertTo-Csv -NoTypeInformation
         
-        Собрать информацию на удалённых ноутбуках в Московском офисе компании Миг Электро и сконвертировать информацию в CSV
+        Собрать информацию на ноутбуках в Московском офисе компании БИЛ и сконвертировать информацию в CSV
     
     .NOTES
         Автор:            Максим Кулагин <m.kulagin@cits.ru>
-        Последняя правка: 2020-09-15
-        Версия 1.0 - Первый релиз
-        Версия 1.1 - Добавлен параметр UseWMI. Понижена минимальная версия Powershell
-        Версия 1.2 - Добавлено автоматическое определение типа компьютера
-        Версия 1.3 - Убран параметр UseWMI, переделано всё на CIM-классы
+        Последняя правка: 2020-10-06
+        Версия 1.0:       Первый релиз
+        Версия 1.1:       Добавлен параметр UseWMI. Понижена минимальная версия Powershell
+        Версия 1.2:       Добавлено автоматическое определение типа компьютера
+        Версия 1.3:       Убран параметр UseWMI, переделано всё на CIM-классы
         
         TODO:
-        Есть проблема с определением железок от НР, если это не ноут. Например вместо модели HP 8184 должна быть HP 260 G2 DM
+        Есть проблема с определением брендовых железок, если это ноут/моноблок/... Например вместо модели HP 8184 должна быть HP 260 G2 DM
     #>
     
     param (
